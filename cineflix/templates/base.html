@@ -19,7 +19,7 @@
 	<link rel="stylesheet" type="text/css" href="/static/assets/icomoon/icomoon.css">
 	<link rel="stylesheet" type="text/css" href="/static/assets/css/vendor.css">
 	<link rel="stylesheet" type="text/css" href="/static/assets/style.css">
-
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css" integrity="sha512-2SwdPD6INVrV/lHTZbO2nodKhrnDdJK9/kg2XD1r9uGqPo1cUbujc+IYdlYdEErWNu69gVcYgdxlmVmzTWnetw==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 
 <body data-bs-spy="scroll" data-bs-target="#header" tabindex="0">
@@ -49,23 +49,41 @@
 					</div>
 					<div class="col-md-6">
 						<div class="right-element">
-							<a href="#" class="user-account for-buy"><i
-									class="icon icon-user"></i><span>Account</span></a>
+							<a href="#" class="user-account for-buy" id="navabarDropdown" data-bs-toggle="dropdown"><i
+									class="icon icon-user"></i><span>{{ user.username }}</span></a>
 							<a href="#" class="cart for-buy"><i class="icon icon-clipboard"></i><span>Cart:(0
 									$)</span></a>
 
+							<ul class="dropdown-menu rounded bg-light border border-1" aria-labelledby="navbarDropdown">
+
+								<li class="dropdown-item">profile</li>
+								<hr class="dropdown-divider">
+
+								{% if request.user.is_authenticated %}
+								
+								<li class="dropdown-item"><a href="{% url 'logout' %}" class="nav-link">Logout</a></li>
+								{% else %}
+								<li class="dropdown-item"><a href="{% url 'login' %}" class="nav-link">Login</a></li>
+								{% endif %}
+
+
+								
+							</ul>
+
+							{% if request.resolver_match.url_name == 'movie-list' %}
 							<div class="action-menu">
 
 								<div class="search-bar">
 									<a href="#" class="search-button search-toggle" data-selector="#header-wrap">
 										<i class="icon icon-search"></i>
 									</a>
-									<form role="search" method="get" class="search-box">
+									<form action="{% url 'movie-list'%}" role="search" method="get" class="search-box">
 										<input class="search-field text search-input" placeholder="Search"
-											type="search">
+											type="search" name="query"{% if query %} value="{{query}}" {% endif %}>
 									</form>
 								</div>
 							</div>
+							{% endif %}
 
 						</div><!--top-right-->
 					</div>
@@ -90,10 +108,11 @@
 						<nav id="navbar">
 							<div class="main-menu stellarnav">
 								<ul class="menu-list">
-									<li class="menu-item active"><a href="#home">Home</a></li>
-									<li class="menu-item"><a href="#featured-books" class="nav-link">Movies</a></li>
+									<li class="menu-item{% if request.resolver_match.url_name == 'home' %} active {% endif %}"><a href="{% url 'home' %}">Home</a></li>
+									<li class="menu-item {% if request.resolver_match.url_name == 'movie-list' %} active {% endif %}"><a href="{% url 'movie-list' %}" class="nav-link">Movies</a></li>
 									<li class="menu-item"><a href="#popular-books" class="nav-link">Series</a></li>
 									<li class="menu-item"><a href="#special-offer" class="nav-link">Popular</a></li>
+									<li class="menu-item {% if request.resolver_match.url_name == 'signup' %} active {% endif %}"><a href="{% url 'signup' %}" class="nav-link">Sign Up</a></li>
 								</ul>
 
 								<div class="hamburger">

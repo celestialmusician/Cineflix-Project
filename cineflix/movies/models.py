@@ -61,6 +61,8 @@ class ArtistChoices(models.TextChoices):
 
     NIVINPAULY='Nivin Pauly','Nivin Pauly'
 
+    DILEEP = 'Dileep','Dileep        '
+
 class LanguagesChoices(models.TextChoices):
 
     MALAYALAM='Malayalam','Malayalam'
@@ -76,29 +78,104 @@ class LanguagesChoices(models.TextChoices):
     KANNADA='Kannada','Kannada'
 
 
+class Industry(BaseClass) :
+
+    name = models.CharField(max_length=50)   
+
+    class Meta :
+
+        verbose_name = 'Industries'
+
+        verbose_name_plural = 'Industries'
+
+    def __str__(self):
+            
+        return f'{self.name}'
+     
+    
+class Genre(BaseClass) :
+
+    name = models.CharField(max_length=50)   
+
+    class Meta :
+
+        verbose_name = 'Genre'
+
+        verbose_name_plural = 'Genre'
+
+    def __str__(self):
+            
+        return f'{self.name}'
+     
+    
+class Artist(BaseClass) :
+
+    name = models.CharField(max_length=50)   
+
+    dob = models.DateField()
+
+    description = models.TextField()
+
+    class Meta :
+
+        verbose_name = 'Artists'
+
+        verbose_name_plural = 'Artists'
+
+    def __str__(self):
+            
+        return f'{self.name}' 
+    
+
+class Language(BaseClass) :
+
+    name = models.CharField(max_length=50)   
+
+    class Meta :
+
+        verbose_name = 'Languages'
+
+        verbose_name_plural = 'Languages'
+
+    def __str__ (self):
+            
+        return f'{self.name}'
+
 class Movie(BaseClass):
 
     name=models.CharField(max_length=50)
 
-    description=models.TextField
+    photo=models.ImageField(upload_to='movies/banner-images')
 
-    release_year=models.DateField()
+    # thumbnail= models.ImageField(upload_to='moives/thumbnails')
 
-    industry= models.CharField(max_length=20,choices=IndusttryChoices.choices)
+    description=models.TextField()
+
+    release_date=models.DateField()
+
+    # industry= models.CharField(max_length=20,choices=IndusttryChoices.choices)
+
+    industry= models.ForeignKey('Industry',on_delete=models.CASCADE)
 
     runtime=models.TimeField()
 
     certification=models.CharField(max_length=5,choices=CertificateChoices.choices)
 
-    genre=MultiSelectField(max_length=30,choices=GenereChoices.choices)
+    # genre=MultiSelectField(choices=GenereChoices.choices)
 
-    artists=MultiSelectField(max_length=30,choices=ArtistChoices.choices)
+    genre=models.ManyToManyField('Genre')
+
+    # artists=MultiSelectField(choices=ArtistChoices.choices)
+
+    artists=models.ManyToManyField('Artist')
 
     video=EmbedVideoField()
 
     tags=models.TextField()
 
-    languages=MultiSelectField(max_length=50,choices=LanguagesChoices.choices)
+    # languages=MultiSelectField(choices=LanguagesChoices.choices)
+
+    languages=models.ManyToManyField('Language')
 
     class Meta:
 
