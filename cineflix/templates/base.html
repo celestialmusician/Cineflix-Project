@@ -55,9 +55,10 @@
 									$)</span></a>
 
 							<ul class="dropdown-menu rounded bg-light border border-1" aria-labelledby="navbarDropdown">
-
-								<li class="dropdown-item">profile</li>
+								{% if request.user.is_authenticated %}
+								<li class="dropdown-item"><a href="{% url 'profile' %}">profile</a></li>
 								<hr class="dropdown-divider">
+								{% endif %}
 
 								{% if request.user.is_authenticated %}
 								

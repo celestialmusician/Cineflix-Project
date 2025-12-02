@@ -2,112 +2,394 @@ from django.shortcuts import render,redirect
 
 from django.views import View
 
-from .forms import LoginForm,SignUpForm
+from .forms import LoginForm,SignUpForm,AddPhoneForm,OTPForm,ChangePasswordForm
 
 from django.contrib.auth import authenticate,login,logout
 
 from django.contrib.auth.hashers import make_password
 
-from cineflix.utils import generate_password
+from cineflix.utils import generate_password,generate_otp,send_otp,send_email
 
+from .models import OTP
 
+from django.utils import timezone
+
+import threading
 
 # Create your views here.
 
-class LoginView(View):
+class LoginView (View) :
 
-    template='authentication/login.html'
+    template = 'authentication/login.html'
 
     form_class = LoginForm
 
-    def get (self,request,*args,**kwargs):
+    def get(self,request,*args,**kwargs) :
 
-        form=self.form_class()
+        form = self.form_class()
 
-        data={'form':form}
+        data = {'form' : form}
 
-        return render(request,self.template,context=data)
+        return render (request,self.template,context=data)
     
-    def post(self,request,*args,**kwargs):
+    def post(self,request,*args,**kwargs) :
 
-        form=self.form_class(request.POST)
+        form = self.form_class(request.POST)
 
-        error=None
+        error = None
 
-        if form.is_valid():
+        if form.is_valid() :
 
-            email=form.cleaned_data.get('email')
+            email = form.cleaned_data.get('email')
 
-            password=form.cleaned_data.get('password')
+            password = form.cleaned_data.get('password')
 
-            user= authenticate(username=email,password=password)
+            user = authenticate(username = email, password = password)
 
             if user :
 
                 login(request,user)
-            
+
                 return redirect('home')
+            
+            error = 'Invalid Username or Password'
         
-            error='Invalid Username or Password'
+        data = {'form':form,'error':error}
+
+        return render (request,self.template,context=data)
+
+
         
-        data={'form':form,'error':error}
+class LogoutView (View) :
 
-        return render(request,self.template,context=data)  
-    
-
-
-class LogoutView(View):
-
-    def get(self,request,*args,**kwargs):
+    def get(self,request,*args,**kwargs) :
 
         logout(request)
 
         return redirect ('home')
     
+
+
 class SignUpView(View):
 
-    template= 'authentication/signup.html'
+    template = 'authentication/signup.html'
 
-    form_class=SignUpForm
+    form_class = SignUpForm
+
+    def get(self,request,*args,**kwargs) :
+
+        form = self.form_class
+
+        data = {'page':'Sign Up','form':form}
+
+        return render(request,self.template,context=data)
+    
+    def post(self,request,*args,**kwargs) :
+
+        form = self.form_class(request.POST)
+
+        if form.is_valid():
+
+            user = form.save(commit=False)
+
+            user.username = user.email
+
+            password = generate_password()
+
+            print(password)
+
+            user.password = make_password(password)
+
+            user.role = 'User'
+
+            user.save()
+
+            recipient = user.email
+
+            template='emails/logincredentials.html'
+
+            subject='CineFlix Login Credentials'
+
+            context={'user':f'{user.first_name} {user.last_name}','username':user.email,'password':password}
+            
+            # send_email(recipient,template,subject,context)
+            
+            thread=threading.Thread(target=send_email,args=(recipient,template,subject,context))
+            
+            thread.start()
+
+            return redirect('login')
+        
+        data = {'form':form}
+
+        return render(request,self.template,context=data)
+    
+
+class ProfileView(View):
+
+    template = 'authentication/profile.html'
+
+    def get(self,request,*args,**kwargs) :
+
+        return render(request,self.template)
+    
+
+class AddPhoneView(View):
+
+    template = 'authentication/phone.html'
+
+    form_class = AddPhoneForm
+
+    def get(self,request,*args,**kwargs) :
+
+        form = self.form_class()
+
+        data = {'form':form}
+
+        return render(request,self.template,context=data)
+    
+    def post(self,request,*args,**kwargs) :
+
+        form = self.form_class(request.POST)
+
+        if form.is_valid() :
+
+            phone = form.cleaned_data.get('phone')
+
+            request.session['phone'] = phone
+
+            return redirect('verify-otp')
+        
+        data = {'form':form}
+
+        return render(request,self.template,context=data)
+
+
+
+class VerifyOTPView(View) :
+
+    template = 'authentication/otp.html'
+
+    form_class = OTPForm
+
+    def get(self,request,*args,**kwargs) :
+
+        form = self.form_class()
+
+        otp = generate_otp()
+
+        user = request.user
+
+        phone = request.session.get('phone')
+
+        otp_obj,created = OTP.objects.get_or_create(profile=user)
+
+        otp_obj.otp = otp
+
+        otp_obj.save()
+
+        send_otp(phone,otp)
+
+        request.session['otp_time'] = timezone.now().timestamp()
+
+        remaining_time = 300
+
+        data = {'form':form,
+                
+                'remaining_time':remaining_time,
+
+                'phone':phone
+                
+                }
+
+        return render(request,self.template,context=data)
+    
+    def post(self,request,*args,**kwargs) :
+
+        form = self.form_class(request.POST)
+
+        if form.is_valid() :
+        
+            user=request.user
+
+            db_otp=user.otp.otp
+
+            input_otp=form.cleaned_data.get('otp')
+
+            otp_time = request.session.get('otp_time')  
+
+            current_time = timezone.now().timestamp()
+
+            if otp_time :
+
+                elapsed = current_time - otp_time
+
+                remaining_time = max(0,300 - int(elapsed))
+
+                if elapsed > 300 :
+
+                    error = 'OTP expired Request a Newone'
+
+                elif db_otp == input_otp :
+                    
+
+                    request.session.pop('otp_time')
+
+                    phone = request.session.get('phone')
+
+                    user.phone=phone
+
+                    user.phone_verified = True
+                    
+                    user.save()
+
+                    request.session.pop('phone')
+
+                    return redirect('profile')
+                
+                else :
+
+
+                    error = 'Invalid OTP'
+
+        data={'form':form,'remaining_time':remaining_time,'error':error}
+
+        return render(request,self.template,context=data)
+    
+class ChangePasswordOTPView(View):
+
+    template = 'authentication/password-otp.html'
+
+    form_class = OTPForm
 
     def get(self,request,*args,**kwargs):
 
-        form=self.form_class()
+        form = self.form_class()
+        
+        otp = generate_otp()
 
-        data={'page':'Sign up','form':form}
+        user = request.user
+
+        otp_obj,created = OTP.objects.get_or_create(profile=user)
+
+        otp_obj.email_otp = otp
+
+        otp_obj.save()
+
+        recipient = user.email
+
+        template = 'emails/password-otp-email.html'
+
+        subject = 'Cineflix :OTP For change password'
+
+        context = {'user':f'{user.first_name} {user.last_name}','otp':otp}
+
+            # send_email(recipient,template,subject,context)
+
+        thread = threading.Thread(target=send_email,args=(recipient,template,subject,context))
+
+        thread.start()
+
+        request.session['otp_time'] = timezone.now().timestamp()
+
+        remaining_time = 300
+
+        data = {'form':form,'remaining_time':remaining_time}
+
+        return render(request,self.template,context=data)
+    
+
+    def post(self,request,*args,**kwargs):
+
+        form = self.form_class(request.POST)
+        
+        if form.is_valid():
+
+            user = request.user
+
+            db_otp = user.otp.email_otp
+
+            input_otp =form.cleaned_data.get('otp')
+
+            otp_time = request.session.get('otp_time')  
+
+            current_time = timezone.now().timestamp()
+
+            if otp_time :
+
+                elapsed = current_time - otp_time
+
+                remaining_time = max(0, 300 - int(elapsed))
+
+                if elapsed > 300 :
+
+                    error = 'OTP expired Request a Newone'
+
+                elif db_otp == input_otp:
+
+                    request.session.pop('otp_time')
+                    
+                    user.otp.email_otp_verified = True
+
+                    user.otp.save()
+
+                    return redirect('change-password')
+                
+                else :
+
+
+                    error = 'Invalid OTP'
+
+        data = {'form':form,'remaining_time':remaining_time,'error':error}
+
+        return render(request,self.template,context=data)
+    
+   
+    
+class ChangePasswordView(View):
+
+    template = 'authentication/change-password.html'
+
+    form_class = ChangePasswordForm
+
+    def get(self,request,*args,**kwargs):
+        
+        form = self.form_class()
+
+        data = {'form':form}
 
         return render(request,self.template,context=data)
     
     def post(self,request,*args,**kwargs):
 
-        form=self.form_class(request.POST)
+        form = self.form_class(request.POST)
 
         if form.is_valid():
 
-           user= form.save(commit=False)
+            user = request.user
 
-           user.username=user.email
+            password = form.cleaned_data.get('new_password')
 
-           password=generate_password()
+            user.password = make_password(password)
 
-           print(password)
+            user.save()
 
-           user.password=make_password(password)
-
-           user.role='User'
-
-           user.save()
-
-           return redirect('login')
+            return redirect('profile')
         
-        data={'form':form}
+        data = {'form':form}
 
         return render(request,self.template,context=data)
         
 
 
-    
+
+
+        
 
 
 
 
+
+
+
+           
