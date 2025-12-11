@@ -18,6 +18,6 @@ urlpatterns=[
 
     path('password-otp/',views.ChangePasswordOTPView.as_view(),name='password-otp'),
 
-    path('change-password/',views.ChangePasswordView.as_view(),name='change-password'),
+    path('change-password/',views.ChangePassWordView.as_view(),name='change-password'),
     
 ]

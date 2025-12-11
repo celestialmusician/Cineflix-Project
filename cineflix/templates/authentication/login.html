@@ -1,6 +1,6 @@
 {% extends 'base.html' %}
 {% block section %}
-<section id="create-movie" class="py-5 my-5">
+<section id="login-section" class="py-5 my-5">
   <div class="container">
     <div class="row justify-content-center">
       <div class="col-md-10">
@@ -14,32 +14,35 @@
             <form method="post" enctype="multipart/form-data">
               {% csrf_token %}
 
-              <!-- Movie Name -->
+              <!-- Email -->
               <div class="mb-3">
-                <label for="name" class="form-label fw-bold">Email</label>
-                <!-- <input type="text" id="name" name="name" class="form-control" placeholder="Enter movie name" required> -->
-                 {{form.email}}
-                 {% if form.email.errors %}
-                 <p class="text-danger small">{{ form.email.errors.0 }}</p>
-                 {% endif %}
+                <label for="id_email" class="form-label fw-bold">Email</label>
+                {{ form.email }}
+                {% if form.email.errors %}
+                  <p class="text-danger small">{{ form.email.errors.0 }}</p>
+                {% endif %}
               </div>
-              <!-- Banner Image -->
-              <div class="mb-3">
-                <label for="photo" class="form-label fw-bold">Password</label>
-                <!-- <input type="file" id="photo" name="photo" class="form-control" required> -->
-                 {{form.password}}
-                 {% if form.photo.errors %}
-                 <p class="text-danger small">{{ form.password.errors.0 }}</p>
-                 {% endif %}
+
+              <!-- Password with icon like Change Password page -->
+              <div class="mb-3 position-relative">
+                <label for="id_password" class="form-label fw-bold">Password</label>
+                <div class="password-wrapper">
+                  {{ form.password }}
+                  <i class="bi bi-eye-slash toggle-password" onclick="togglePassword('id_password', this)"></i>
+                </div>
+                {% if form.password.errors %}
+                  <p class="text-danger small">{{ form.password.errors.0 }}</p>
+                {% endif %}
               </div>
+
               <div class="d-flex justify-content-end mt-4 btn-wrap">
                 <button type="submit" class="btn btn-outline-accent btn-accent-arrow">
-                  Login  <i class="icon icon-ns-arrow-right"></i>
+                  Login <i class="icon icon-ns-arrow-right"></i>
                 </button>
               </div>
-              {% if error %}
 
-              <p class="text-danger small">{{ error }}</p>
+              {% if error %}
+                <p class="text-danger text-center small">{{ error }}</p>
               {% endif %}
             </form>
           </div>
@@ -50,5 +53,42 @@
   </div>
 </section>
 
+<!-- Password Toggle Script (same as Change Password page) -->
+<script>
+  function togglePassword(fieldId, el) {
+    const input = document.getElementById(fieldId);
+    if (input.type === "password") {
+      input.type = "text";
+      el.classList.remove("bi-eye-slash");
+      el.classList.add("bi-eye");
+    } else {
+      input.type = "password";
+      el.classList.remove("bi-eye");
+      el.classList.add("bi-eye-slash");
+    }
+  }
+</script>
 
+<!-- Styling (same as Change Password page) -->
+<style>
+  .password-wrapper {
+    position: relative;
+  }
+  .password-wrapper input {
+    padding-right: 2.5rem;
+  }
+  .toggle-password {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #6c757d;
+    font-size: 1.3rem;
+    text-shadow: 0 0 1px #6c757d;
+  }
+</style>
+
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
 {% endblock %}
