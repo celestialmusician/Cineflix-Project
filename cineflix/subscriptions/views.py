@@ -2,15 +2,23 @@ from django.shortcuts import render
 
 from django.views import View
 
+from . models import SubscriptionPlans
+
 # Create your views here.
+
 
 class SubscriptionView(View):
 
-    template='subscriptions/subscription-list.html'
+    template = 'subscriptions/subscription-list.html'
 
-    def get(self,request,*args,**kwargs):
+    def get(self, request, *args, **kwargs):
 
-        return render(request,self.template)
+        plans = SubscriptionPlans.objects.all()
+
+        data = {'plans': plans}
+
+        return render(request, self.template, context=data)
+
     
 
         
